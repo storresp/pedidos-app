@@ -1,0 +1,23 @@
+frontend:
+  replicaCount: 1
+  image:
+    tag: "dev"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+backend:
+  replicaCount: 1
+  image:
+    tag: "dev"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+postgresql:
+  auth:
+    username: "postgres"
+    password: "devpassword"
+    database: "pedidos"

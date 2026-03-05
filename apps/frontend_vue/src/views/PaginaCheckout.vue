@@ -11,7 +11,9 @@ const enviando = ref(false)
 const enviado = ref(false)
 const errorMsg = ref('')
 
-const BASE_URL = 'http://localhost:8000/pedidos/api'
+// Si estamos en desarrollo local apunta a localhost:8000, 
+// si estamos en producción/Kubernetes usa la ruta relativa controlada por Ingress
+const BASE_URL = import.meta.env.DEV ? 'http://localhost:8000/pedidos/api' : '/pedidos/api'
 
 function volver() {
   router.push({ name: 'productos' })
@@ -28,10 +30,16 @@ async function guardarPedidoEnBD(datosCliente) {
   errorMsg.value = ''
 
   try {
-    // 1. Preparamos los items tal cual como necesita el backend: [{ product_id, quantity }]
-    const items = carrito.value.map(p => ({
-      product_id: Number(p.id),
-      quantity: 1
+    // 1. Agrupar los productos del carrito por ID y calcular sus cantidades
+    // así evitamos enviar duplicados y generar un error UNIQUE en la base de datos
+    const cantidades = {}
+    carrito.value.forEach(p => {
+      cantidades[p.id] = (cantidades[p.id] || 0) + 1
+    })
+
+    const items = Object.entries(cantidades).map(([id, qty]) => ({
+      product_id: Number(id),
+      quantity: qty
     }))
 
     // 2. Realizamos la solicitud POST enviando: nombre, correo, e items.

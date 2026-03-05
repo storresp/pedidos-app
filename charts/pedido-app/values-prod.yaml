@@ -1,0 +1,23 @@
+frontend:
+  replicaCount: 3
+  image:
+    tag: "prod"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+backend:
+  replicaCount: 3
+  image:
+    tag: "prod"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+postgresql:
+  auth:
+    username: "postgres"
+    password: "prodpassword"
+    database: "pedidos_prod"

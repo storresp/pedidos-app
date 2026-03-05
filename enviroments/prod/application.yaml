@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pedido-app-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    # URL del repositorio Git donde se encuentra el chart y los values
+    repoURL: 'https://github.com/MI-REPO/MI-PROYECTO.git' # Reemplazar con URL real
+    targetRevision: HEAD
+    path: charts/pedido-app
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

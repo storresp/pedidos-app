@@ -11,7 +11,9 @@ const listaProductos = ref([])
 const cargando = ref(true)
 const errorProductos = ref('')
 
-const BASE_URL = 'http://localhost:8000/pedidos/api'
+// Si estamos en desarrollo local apunta a localhost:8000, 
+// si estamos en producción/Kubernetes usa la ruta relativa controlada por Ingress
+const BASE_URL = import.meta.env.DEV ? 'http://localhost:8000/pedidos/api' : '/pedidos/api'
 
 async function cargarProductos() {
   cargando.value = true

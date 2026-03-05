@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pedido-app.fullname" . }}-backend
+  labels:
+    app.kubernetes.io/component: backend
+    {{- include "pedido-app.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: backend
+      {{- include "pedido-app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: backend
+        {{- include "pedido-app.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args: ["python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "pedido-app.fullname" . }}-backend-config
+            - secretRef:
+                name: {{ include "pedido-app.fullname" . }}-backend-secret
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
