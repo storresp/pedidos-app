@@ -7,8 +7,8 @@ spec:
   project: default
   source:
     # URL del repositorio Git donde se encuentra el chart y los values
-    repoURL: 'https://github.com/MI-REPO/MI-PROYECTO.git' # Reemplazar con URL real
-    targetRevision: HEAD
+    repoURL: 'https://github.com/storresp/pedidos-app.git' # Reemplazar con URL real
+    targetRevision: juandi
     path: charts/pedido-app
     helm:
       valueFiles:
