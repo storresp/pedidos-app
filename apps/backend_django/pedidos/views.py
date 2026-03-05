@@ -1,5 +1,5 @@
 from django.db import transaction
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -38,25 +38,41 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 
     @transaction.atomic
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        customer = Customer.objects.get(id=data["customer_id"])
+        # Buscar o crear el customer por correo
+        customer, _ = Customer.objects.get_or_create(
+            email=data["correo"],
+            defaults={"name": data["nombre"]}
+        )
+        # Si ya existía, actualizar el nombre por si cambió
+        if customer.name != data["nombre"]:
+            customer.name = data["nombre"]
+            customer.save(update_fields=["name"])
 
         order = Order.objects.create(customer=customer)
 
         for item in data.get("items", []):
-            product = Product.objects.get(id=item["product_id"])
+            try:
+                product = Product.objects.get(id=item["product_id"])
+            except Product.DoesNotExist:
+                return Response(
+                    {"detail": f"Producto con ID {item['product_id']} no encontrado."}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
             OrderItem.objects.create(
                 order=order,
                 product=product,
-                quantity=item["quantity"],
+                quantity=item.get("quantity", 1),
                 unit_price=product.price
             )
 
-        serializer.instance = order
-
+        read_serializer = OrderReadSerializer(order)
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="items")
     @transaction.atomic

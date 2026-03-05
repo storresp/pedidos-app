@@ -9,6 +9,7 @@
 
 <script setup>
 const props = defineProps({
+  id: Number,
   nombre: String,
   precio: Number
 })
@@ -17,6 +18,7 @@ const emit = defineEmits(['agregar'])
 
 function comprar() {
   emit('agregar', {
+    id: props.id,
     nombre: props.nombre,
     precio: props.precio
   })

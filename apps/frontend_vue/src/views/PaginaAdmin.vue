@@ -1,43 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 
-// ─────────────────────────────────────────────────────────────────────
-// DATOS MOCK — Reemplazar cuando tengas la DB
-// ─────────────────────────────────────────────────────────────────────
-const MOCK_PEDIDOS = [
-  {
-    id: 1,
-    nombre: 'Juan Díaz',
-    correo: 'juan@correo.com',
-    fecha: '2026-03-01T14:30:00',
-    productos: [
-      { nombre: 'Laptop', precio: 2500 },
-      { nombre: 'Mouse', precio: 80 }
-    ]
-  },
-  {
-    id: 2,
-    nombre: 'María López',
-    correo: 'maria@correo.com',
-    fecha: '2026-03-02T09:15:00',
-    productos: [
-      { nombre: 'Teclado', precio: 150 },
-      { nombre: 'Monitor', precio: 900 }
-    ]
-  },
-  {
-    id: 3,
-    nombre: 'Carlos Ruiz',
-    correo: 'carlos@correo.com',
-    fecha: '2026-03-03T17:45:00',
-    productos: [
-      { nombre: 'Webcam', precio: 120 },
-      { nombre: 'Audífonos', precio: 200 },
-      { nombre: 'Mouse', precio: 80 }
-    ]
-  }
-]
-// ─────────────────────────────────────────────────────────────────────
+const BASE_URL = 'http://localhost:8000/pedidos/api'
 
 const pedidos    = ref([])
 const cargando   = ref(true)
@@ -45,9 +9,29 @@ const errorMsg   = ref('')
 const busqueda   = ref('')
 const pedidoAbierto = ref(null)  // ID del pedido con detalle expandido
 
+// ── Normalizar respuesta de la API al formato interno ──────────────
+// La API devuelve:
+// { id, customer: { name, email }, items: [{ product: { name, price }, quantity, unit_price, line_total }], total, created_at }
+// Lo mapeamos a: { id, nombre, correo, fecha, productos: [{ nombre, precio }], total }
+function normalizarPedido(p) {
+  return {
+    id: p.id,
+    nombre: p.customer?.name ?? '—',
+    correo: p.customer?.email ?? '—',
+    fecha: p.created_at,
+    status: p.status,
+    total: parseFloat(p.total),
+    productos: (p.items ?? []).map(item => ({
+      nombre: item.product?.name ?? '—',
+      precio: parseFloat(item.unit_price),
+      cantidad: item.quantity,
+    }))
+  }
+}
+
 // ── Totales calculados por pedido ──────────────────────────────────
 function totalPedido(productos) {
-  return productos.reduce((acc, p) => acc + p.precio, 0)
+  return productos.reduce((acc, p) => acc + p.precio * p.cantidad, 0)
 }
 
 // ── Filtro de búsqueda por nombre o correo ─────────────────────────
@@ -63,7 +47,7 @@ const pedidosFiltrados = computed(() => {
 // ── Estadísticas del header ────────────────────────────────────────
 const totalPedidos  = computed(() => pedidos.value.length)
 const totalIngresos = computed(() =>
-  pedidos.value.reduce((acc, p) => acc + totalPedido(p.productos), 0)
+  pedidos.value.reduce((acc, p) => acc + p.total, 0)
 )
 
 // ── Formato de fecha ───────────────────────────────────────────────
@@ -74,38 +58,30 @@ function formatFecha(iso) {
   })
 }
 
-// ── Carga de pedidos ───────────────────────────────────────────────
+// ── Badge de status ────────────────────────────────────────────────
+const statusClases = {
+  PENDING:   'badge-pending',
+  PAID:      'badge-paid',
+  CANCELLED: 'badge-cancelled',
+}
+const statusLabels = {
+  PENDING:   'Pendiente',
+  PAID:      'Pagado',
+  CANCELLED: 'Cancelado',
+}
+
+// ── Carga de pedidos desde la API ──────────────────────────────────
 async function cargarPedidos() {
   cargando.value = true
   errorMsg.value = ''
 
   try {
-    // ═══════════════════════════════════════════════════════════════
-    // TODO (cuando tengas la DB):
-    //   Reemplaza el bloque de abajo con tu llamada real a la API.
-    //
-    //   const res = await fetch('http://TU_BACKEND/api/pedidos/')
-    //   if (!res.ok) throw new Error('Error al obtener pedidos')
-    //   pedidos.value = await res.json()
-    //
-    //   La respuesta debe ser un array de objetos con la forma:
-    //   [
-    //     {
-    //       id: number,
-    //       nombre: string,
-    //       correo: string,
-    //       fecha: string (ISO 8601),
-    //       productos: [{ nombre: string, precio: number }]
-    //     }
-    //   ]
-    // ═══════════════════════════════════════════════════════════════
-
-    // Simulación de latencia de red (quitar cuando tengas la DB)
-    await new Promise(r => setTimeout(r, 800))
-    pedidos.value = MOCK_PEDIDOS
-
+    const res = await fetch(`${BASE_URL}/orders/`)
+    if (!res.ok) throw new Error(`Error ${res.status}`)
+    const data = await res.json()
+    pedidos.value = data.map(normalizarPedido)
   } catch (e) {
-    errorMsg.value = 'No se pudo conectar con el servidor. Intenta de nuevo.'
+    errorMsg.value = 'No se pudo conectar con el servidor. ¿Está el backend activo?'
   } finally {
     cargando.value = false
   }
@@ -181,6 +157,7 @@ onMounted(cargarPedidos)
             <th>Cliente</th>
             <th>Correo</th>
             <th>Fecha</th>
+            <th>Status</th>
             <th>Productos</th>
             <th>Total</th>
             <th>Detalle</th>
@@ -194,10 +171,15 @@ onMounted(cargarPedidos)
               <td class="celda-nombre">{{ pedido.nombre }}</td>
               <td class="celda-correo">{{ pedido.correo }}</td>
               <td class="celda-fecha">{{ formatFecha(pedido.fecha) }}</td>
+              <td>
+                <span class="badge-status" :class="statusClases[pedido.status]">
+                  {{ statusLabels[pedido.status] ?? pedido.status }}
+                </span>
+              </td>
               <td class="celda-count">
                 <span class="badge-count">{{ pedido.productos.length }} items</span>
               </td>
-              <td class="celda-total">${{ totalPedido(pedido.productos).toLocaleString() }}</td>
+              <td class="celda-total">${{ pedido.total.toLocaleString() }}</td>
               <td class="celda-accion">
                 <span class="chevron" :class="{ abierto: pedidoAbierto === pedido.id }">▼</span>
               </td>
@@ -205,18 +187,19 @@ onMounted(cargarPedidos)
 
             <!-- Fila de detalle expandible -->
             <tr v-if="pedidoAbierto === pedido.id" class="fila-detalle">
-              <td colspan="7">
+              <td colspan="8">
                 <div class="detalle-container">
                   <p class="detalle-titulo">Productos del pedido:</p>
                   <div class="detalle-items">
                     <div v-for="(p, i) in pedido.productos" :key="i" class="detalle-item">
                       <span class="detalle-nombre">{{ p.nombre }}</span>
-                      <span class="detalle-precio">${{ p.precio.toLocaleString() }}</span>
+                      <span class="detalle-qty">x{{ p.cantidad }}</span>
+                      <span class="detalle-precio">${{ (p.precio * p.cantidad).toLocaleString() }}</span>
                     </div>
                   </div>
                   <div class="detalle-total">
                     <span>Total del pedido:</span>
-                    <span class="detalle-total-valor">${{ totalPedido(pedido.productos).toLocaleString() }}</span>
+                    <span class="detalle-total-valor">${{ pedido.total.toLocaleString() }}</span>
                   </div>
                 </div>
               </td>
@@ -428,6 +411,33 @@ td {
 .celda-fecha   { color: rgba(255, 255, 255, 0.5); font-size: 0.85rem; }
 .celda-total   { color: #ffc850; font-weight: 700; }
 
+/* ─── Badge status ─── */
+.badge-status {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.badge-pending {
+  background: rgba(255, 200, 80, 0.15);
+  color: #ffc850;
+  border: 1px solid rgba(255, 200, 80, 0.4);
+}
+
+.badge-paid {
+  background: rgba(80, 220, 120, 0.15);
+  color: #50dc78;
+  border: 1px solid rgba(80, 220, 120, 0.4);
+}
+
+.badge-cancelled {
+  background: rgba(255, 80, 80, 0.15);
+  color: #ff7b7b;
+  border: 1px solid rgba(255, 80, 80, 0.4);
+}
+
 .badge-count {
   background: rgba(123, 47, 247, 0.3);
   border: 1px solid rgba(123, 47, 247, 0.5);
@@ -483,16 +493,18 @@ td {
   background: rgba(255, 255, 255, 0.04);
   border-radius: 7px;
   font-size: 0.88rem;
-  max-width: 420px;
+  max-width: 500px;
+  gap: 0.5rem;
 }
 
-.detalle-nombre { color: rgba(255, 255, 255, 0.75); }
+.detalle-nombre { color: rgba(255, 255, 255, 0.75); flex: 1; }
+.detalle-qty    { color: rgba(255, 255, 255, 0.4); font-size: 0.82rem; }
 .detalle-precio { color: #ffc850; font-weight: 600; }
 
 .detalle-total {
   display: flex;
   justify-content: space-between;
-  max-width: 420px;
+  max-width: 500px;
   padding: 6px 10px;
   border-top: 1px solid rgba(255, 200, 80, 0.12);
   margin-top: 0.3rem;

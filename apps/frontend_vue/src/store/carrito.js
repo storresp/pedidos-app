@@ -1,5 +1,6 @@
 // store/carrito.js
 // Estado global del carrito compartido entre PaginaProductos y PaginaCheckout
+// Cada elemento tiene: { id, nombre, precio }  (id = product_id del backend)
 import { ref } from 'vue'
 
 export const carrito = ref([])

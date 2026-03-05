@@ -1,54 +1,45 @@
 <script setup>
 import { ref } from 'vue'
 
-// ── El componente emite el evento 'enviar' con { nombre, correo } ──
+const props = defineProps({
+  enviando: {
+    type: Boolean,
+    default: false
+  },
+  enviado: {
+    type: Boolean,
+    default: false
+  },
+  errorMsg: {
+    type: String,
+    default: ''
+  }
+})
+
 const emit = defineEmits(['enviar'])
 
 const nombre = ref('')
 const correo = ref('')
-const enviando = ref(false)
-const enviado = ref(false)
-const error = ref('')
+const errorFront = ref('')
 
-async function handleSubmit() {
-  error.value = ''
+function handleSubmit() {
+  errorFront.value = ''
 
-  // Validación básica
+  // Validación básica del lado del frontend
   if (!nombre.value.trim() || !correo.value.trim()) {
-    error.value = 'Por favor completa todos los campos.'
+    errorFront.value = 'Por favor completa todos los campos.'
     return
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo.value)) {
-    error.value = 'El correo no es válido.'
+    errorFront.value = 'El correo no es válido.'
     return
   }
 
-  enviando.value = true
-
-  // ════════════════════════════════════════════════════════════════
-  // TODO (cuando tengas la DB):
-  //   Reemplaza este bloque con una llamada real a tu API.
-  //   Ejemplo con fetch:
-  //
-  //   const res = await fetch('http://TU_BACKEND/api/pedidos/', {
-  //     method: 'POST',
-  //     headers: { 'Content-Type': 'application/json' },
-  //     body: JSON.stringify({
-  //       nombre: nombre.value,
-  //       correo: correo.value,
-  //       productos: props.productos   // <-- pasa los productos como prop desde PaginaCheckout
-  //     })
-  //   })
-  //   if (!res.ok) throw new Error('Error al guardar el pedido')
-  // ════════════════════════════════════════════════════════════════
-
-  // Simulación de guardado (quitar cuando tengas la DB)
-  await new Promise(r => setTimeout(r, 1000))
-
-  enviando.value = false
-  enviado.value = true
-
-  emit('enviar', { nombre: nombre.value, correo: correo.value })
+  // Notificamos al componente padre (PaginaCheckout) que intente guardar en BD
+  emit('enviar', { 
+    nombre: nombre.value.trim(), 
+    correo: correo.value.trim() 
+  })
 }
 </script>
 
@@ -59,7 +50,7 @@ async function handleSubmit() {
       <h2 class="form-titulo">Datos del Cliente</h2>
     </div>
 
-    <!-- Confirmación de éxito -->
+    <!-- Confirmación de éxito (controlado por el prop `enviado` del padre) -->
     <div v-if="enviado" class="exito">
       <span class="exito-icon">✅</span>
       <p>¡Pedido registrado con éxito!</p>
@@ -77,6 +68,7 @@ async function handleSubmit() {
           type="text"
           placeholder="Ej. Juan Díaz"
           autocomplete="name"
+          :disabled="enviando"
         />
       </div>
 
@@ -88,13 +80,17 @@ async function handleSubmit() {
           type="email"
           placeholder="Ej. juan@correo.com"
           autocomplete="email"
+          :disabled="enviando"
         />
       </div>
 
-      <p v-if="error" class="error-msg">⚠️ {{ error }}</p>
+      <!-- Errores locales del formulario -->
+      <p v-if="errorFront" class="error-msg">⚠️ {{ errorFront }}</p>
+      <!-- Errores que vienen del backend o del padre -->
+      <p v-else-if="errorMsg" class="error-msg dev-error">❌ {{ errorMsg }}</p>
 
       <button type="submit" class="btn-enviar" :disabled="enviando">
-        <span v-if="enviando">Enviando...</span>
+        <span v-if="enviando">Guardando en BD... ⏳</span>
         <span v-else>Confirmar Pedido 🚀</span>
       </button>
 
@@ -169,10 +165,20 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(255, 200, 80, 0.1);
 }
 
+input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .error-msg {
   font-size: 0.88rem;
   color: #ff7b7b;
   margin-top: -0.4rem;
+}
+
+.dev-error {
+  color: #ff5757;
+  font-weight: 600;
 }
 
 .btn-enviar {

@@ -33,9 +33,15 @@ class OrderReadSerializer(serializers.ModelSerializer):
 
 class OrderItemCreateSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()
-    quantity = serializers.IntegerField()
+    quantity = serializers.IntegerField(min_value=1, default=1)
 
 
 class OrderCreateSerializer(serializers.Serializer):
-    customer_id = serializers.IntegerField()
-    items = OrderItemCreateSerializer(many=True, required=False)
+    """
+    El frontend envía:
+      { nombre, correo, items: [{ product_id, quantity }] }
+    El backend busca o crea el Customer y crea la Order.
+    """
+    nombre = serializers.CharField(max_length=120)
+    correo = serializers.EmailField()
+    items = OrderItemCreateSerializer(many=True, required=True, allow_empty=False)
