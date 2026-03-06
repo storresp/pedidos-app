@@ -1,7 +1,7 @@
 frontend:
   replicaCount: 3
   image:
-    tag: "latest"
+    tag: "dev"
   resources:
     requests:
       cpu: 200m
@@ -10,7 +10,7 @@ frontend:
 backend:
   replicaCount: 3
   image:
-    tag: "latest"
+    tag: "dev"
   resources:
     requests:
       cpu: 200m
