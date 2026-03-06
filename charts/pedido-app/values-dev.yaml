@@ -19,5 +19,10 @@ backend:
 postgresql:
   auth:
     username: "postgres"
-    password: "devpassword"
-    database: "pedidos"
+    password: "prodpassword"
+    database: "pedidos_prod"
+
+ingress:
+  hosts:
+    - host: "prod.pedido-app.local"
+    - host: "dev.pedido-app.local"
