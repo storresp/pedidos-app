@@ -3,7 +3,8 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ include "pedido-app.fullname" . }}
-  labels:
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
     {{- include "pedido-app.labels" . | nindent 4 }}
 spec:
   {{- if .Values.ingress.className }}
