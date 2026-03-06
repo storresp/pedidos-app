@@ -21,3 +21,7 @@ postgresql:
     username: "postgres"
     password: "prodpassword"
     database: "pedidos_prod"
+
+ingress:
+  hosts:
+    - host: "prod.pedido-app.local"
