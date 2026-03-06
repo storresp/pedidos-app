@@ -2,7 +2,7 @@ frontend:
   replicaCount: 1
   image:
     repository: juan12311/frontend
-    tag: "prod"
+    tag: "latest"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
@@ -16,7 +16,7 @@ backend:
   replicaCount: 1
   image:
     repository: juan12311/backend
-    tag: "prod"
+    tag: "latest"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
