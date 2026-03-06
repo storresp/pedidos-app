@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-ts!#9rncb9ohg%(f878thi^l4fbl-5wds7dm5a(-@ws39*rxq@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -59,6 +59,8 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://dev.pedido-app.local",
+    "http://prod.pedido-app.local",
 ]
 
 ROOT_URLCONF = 'backend_django.urls'
